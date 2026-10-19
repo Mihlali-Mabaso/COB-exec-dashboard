@@ -3,19 +3,19 @@
 import Link from 'next/link';
 import { useState, type FormEvent } from 'react';
 import { ArrowRight, Check, ChevronDown, ClipboardList, LoaderCircle, Sparkles } from 'lucide-react';
-import { QUESTIONS, ROLES } from '@/lib/constants';
+import { getRoleDetails, QUESTIONS, ROLES } from '@/lib/constants';
 import { supabase, supabaseSetupMessage } from '@/lib/supabase';
 
 type FormData = {
   interviewer_name: string; candidate_name: string; role_applied_for: string;
   q1_vision: string; q2_leading_people: string; q3_handling_pressure: string;
-  q4_disagreement: string; q5_active_initiative: string;
+  q4_disagreement: string; q5_role_specific: string;
   q1_score: string; q2_score: string; q3_score: string; q4_score: string; q5_score: string;
   skill_score: string; heart_score: string; overall_notes: string;
 };
 const blankForm: FormData = {
   interviewer_name: '', candidate_name: '', role_applied_for: '', q1_vision: '', q2_leading_people: '',
-  q3_handling_pressure: '', q4_disagreement: '', q5_active_initiative: '', q1_score: '', q2_score: '', q3_score: '', q4_score: '', q5_score: '', skill_score: '', heart_score: '', overall_notes: '',
+  q3_handling_pressure: '', q4_disagreement: '', q5_role_specific: '', q1_score: '', q2_score: '', q3_score: '', q4_score: '', q5_score: '', skill_score: '', heart_score: '', overall_notes: '',
 };
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
@@ -27,6 +27,7 @@ export default function Home() {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const update = (key: keyof FormData, value: string) => setForm(current => ({ ...current, [key]: value }));
+  const roleDetails = getRoleDetails(form.role_applied_for);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,7 +38,7 @@ export default function Home() {
       interviewer_name: form.interviewer_name.trim(), candidate_name: form.candidate_name.trim(),
       role_applied_for: form.role_applied_for, q1_vision: form.q1_vision.trim() || null,
       q2_leading_people: form.q2_leading_people.trim() || null, q3_handling_pressure: form.q3_handling_pressure.trim() || null,
-      q4_disagreement: form.q4_disagreement.trim() || null, q5_active_initiative: form.q5_active_initiative.trim() || null,
+      q4_disagreement: form.q4_disagreement.trim() || null, q5_role_specific: form.q5_role_specific.trim() || null,
       q1_score: Number(form.q1_score), q2_score: Number(form.q2_score), q3_score: Number(form.q3_score),
       q4_score: Number(form.q4_score), q5_score: Number(form.q5_score),
       skill_score: Number(form.skill_score), heart_score: Number(form.heart_score), overall_notes: form.overall_notes.trim() || null,
@@ -83,11 +84,14 @@ export default function Home() {
             <label className="block"><FieldLabel required>Candidate name</FieldLabel><input className={inputClass} required maxLength={160} autoComplete="off" placeholder="Full name" value={form.candidate_name} onChange={e => update('candidate_name', e.target.value)}/></label>
             <label className="block"><FieldLabel required>Role applied for</FieldLabel><span className="relative block"><select className={`${inputClass} appearance-none pr-10`} required value={form.role_applied_for} onChange={e => update('role_applied_for', e.target.value)}><option value="" disabled>Select a role</option>{ROLES.map(role => <option key={role} value={role}>{role}</option>)}</select><ChevronDown size={16} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-stone-400"/></span></label>
           </div>
+          {roleDetails && <div className="mt-4 rounded-xl border border-forest/10 bg-paper px-4 py-3"><p className="text-xs font-bold uppercase tracking-wider text-moss">Role focus</p><p className="mt-1 text-sm leading-6 text-stone-600">{roleDetails.description}</p></div>}
         </section>
 
         <section className={sectionClass}>
           <div className="mb-6 flex items-center gap-3"><span className="grid h-8 w-8 place-items-center rounded-lg bg-forest text-xs font-bold text-lime">03</span><div><h2 className="font-bold">The conversation</h2><p className="text-xs text-stone-500">Capture the candidate’s answers in their own words.</p></div></div>
-          <div className="space-y-7">{QUESTIONS.map((question, index) => <div key={question.key} className="block"><FieldLabel><span className="mr-1.5 text-xs font-bold text-moss">Q{index + 1}</span>{question.title}</FieldLabel><p className="mb-2.5 text-sm leading-6 text-stone-500">{question.prompt}</p><textarea aria-label={`Answer to question ${index + 1}: ${question.title}`} className={`${inputClass} min-h-[112px] resize-y leading-6`} maxLength={6000} placeholder="Note the key points, examples, and moments that stood out…" value={form[question.key]} onChange={e => update(question.key, e.target.value)}/><fieldset className="mt-3"><legend className="mb-2 text-xs font-semibold text-stone-600">Rate this answer <span className="text-rose-500">*</span> <span className="font-normal text-stone-400">(1 = needs development · 10 = exceptional)</span></legend><div className="grid max-w-lg grid-cols-5 gap-2 sm:grid-cols-10">{Array.from({ length: 10 }, (_, scoreIndex) => scoreIndex + 1).map(score => <label key={score} className="cursor-pointer"><input className="peer sr-only" type="radio" name={question.scoreKey} required value={score} checked={form[question.scoreKey] === String(score)} onChange={e => update(question.scoreKey, e.target.value)}/><span className="grid h-10 place-items-center rounded-lg border border-stone-200 bg-white text-sm font-semibold text-stone-600 transition hover:border-moss peer-checked:border-forest peer-checked:bg-forest peer-checked:text-lime peer-focus-visible:ring-4 peer-focus-visible:ring-forest/20">{score}</span></label>)}</div></fieldset></div>)}</div>
+          <div className="space-y-7">{QUESTIONS.map((question, index) => <div key={question.key} className="block"><FieldLabel><span className="mr-1.5 text-xs font-bold text-moss">Q{index + 1}</span>{question.title}</FieldLabel><p className="mb-2.5 text-sm leading-6 text-stone-500">{question.prompt}</p><textarea aria-label={`Answer to question ${index + 1}: ${question.title}`} className={`${inputClass} min-h-[112px] resize-y leading-6`} maxLength={6000} placeholder="Note the key points, examples, and moments that stood out…" value={form[question.key]} onChange={e => update(question.key, e.target.value)}/><QuestionRating name={question.scoreKey} value={form[question.scoreKey]} onChange={value => update(question.scoreKey, value)}/></div>)}
+            {roleDetails && <div className="block"><FieldLabel><span className="mr-1.5 text-xs font-bold text-moss">Q5</span>Role-specific question</FieldLabel><p className="mb-2.5 text-sm leading-6 text-stone-500">{roleDetails.finalQuestion}</p><textarea aria-label={`Answer to role-specific question for ${form.role_applied_for}`} className={`${inputClass} min-h-[112px] resize-y leading-6`} maxLength={6000} placeholder="Note the key points, examples, and moments that stood out…" value={form.q5_role_specific} onChange={e => update('q5_role_specific', e.target.value)}/><QuestionRating name="q5_score" value={form.q5_score} onChange={value => update('q5_score', value)}/></div>}
+          </div>
         </section>
 
         <section className={sectionClass}>
@@ -104,4 +108,8 @@ export default function Home() {
       <footer className="mt-10 border-t border-stone-200 pt-5 text-center text-xs text-stone-400">Create On Base · Building a home for builders</footer>
     </div>
   </main>;
+}
+
+function QuestionRating({ name, value, onChange }: { name: string; value: string; onChange: (value: string) => void }) {
+  return <fieldset className="mt-3"><legend className="mb-2 text-xs font-semibold text-stone-600">Rate this answer <span className="text-rose-500">*</span> <span className="font-normal text-stone-400">(1 = needs development · 10 = exceptional)</span></legend><div className="grid max-w-lg grid-cols-5 gap-2 sm:grid-cols-10">{Array.from({ length: 10 }, (_, scoreIndex) => scoreIndex + 1).map(score => <label key={score} className="cursor-pointer"><input className="peer sr-only" type="radio" name={name} required value={score} checked={value === String(score)} onChange={event => onChange(event.target.value)}/><span className="grid h-10 place-items-center rounded-lg border border-stone-200 bg-white text-sm font-semibold text-stone-600 transition hover:border-moss peer-checked:border-forest peer-checked:bg-forest peer-checked:text-lime peer-focus-visible:ring-4 peer-focus-visible:ring-forest/20">{score}</span></label>)}</div></fieldset>;
 }

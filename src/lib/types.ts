@@ -9,6 +9,7 @@ export type Interview = {
   q3_handling_pressure: string | null;
   q4_disagreement: string | null;
   q5_active_initiative: string | null;
+  q5_role_specific: string | null;
   q1_score: number | null;
   q2_score: number | null;
   q3_score: number | null;
