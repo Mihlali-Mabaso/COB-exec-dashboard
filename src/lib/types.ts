@@ -1,0 +1,20 @@
+export type Interview = {
+  id: string;
+  created_at: string;
+  interviewer_name: string;
+  candidate_name: string;
+  role_applied_for: string;
+  q1_vision: string | null;
+  q2_leading_people: string | null;
+  q3_handling_pressure: string | null;
+  q4_disagreement: string | null;
+  q5_active_initiative: string | null;
+  q1_score: number | null;
+  q2_score: number | null;
+  q3_score: number | null;
+  q4_score: number | null;
+  q5_score: number | null;
+  skill_score: number | null;
+  heart_score: number | null;
+  overall_notes: string | null;
+};
